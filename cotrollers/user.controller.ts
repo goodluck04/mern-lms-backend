@@ -1,6 +1,6 @@
 import "dotenv/config";
 import { Request, Response, NextFunction } from "express";
-import userModel from "../models/use.model";
+import userModel, { IUser } from "../models/use.model";
 import ErrorHandler from "../utils/ErrorHandler";
 import { CatchAsyncError } from "../middleware/catchAsyncErrors";
 import jwt, { Secret } from "jsonwebtoken";
@@ -17,10 +17,10 @@ interface IRegistrationBody {
     avatar?: string;
 }
 
-export const registrationUser = CatchAsyncError(async (req: Request, res: Response, next: NextFunction) => {    
+export const registrationUser = CatchAsyncError(async (req: Request, res: Response, next: NextFunction) => {
     try {
         const { name, email, password } = req.body;
-        
+
         const isEmailExist = await userModel.findOne({ email });
         if (isEmailExist) {
             return next(new ErrorHandler("Email already exists", 400));
@@ -71,3 +71,43 @@ export const createActivation = (user: any): IActivationToken => {
     return { token, activationCode }
 }
 
+
+// activate user
+interface IActivationRequest {
+    activation_token: string;
+    activation_code: string;
+}
+
+export const activateUser = CatchAsyncError(async (req: Request, res: Response, next: NextFunction) => {
+    try {
+        const { activation_token, activation_code } = req.body as IActivationRequest;
+        const newUser: { user: IUser; activationCode: string } = jwt.verify(
+            activation_token,
+            process.env.ACTIVATION_SECRET as string
+        ) as { user: IUser; activationCode: string }
+
+        if (newUser.activationCode !== activation_code) {
+            return next(new ErrorHandler("Invalid activation code", 400))
+        }
+
+        const { name, email, password } = newUser.user;
+        const existUser = await userModel.findOne({ email });
+
+        if (existUser) {
+            return next(new ErrorHandler("Email already exists", 400))
+        }
+
+        const user = await userModel.create({
+            name,
+            email,
+            password,
+        })
+
+        res.status(201).json({
+            success: true,
+        })
+    } catch (error) {
+        return next(new ErrorHandler(error.message, 400))
+    }
+}
+)
