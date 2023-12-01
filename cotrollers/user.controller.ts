@@ -1,5 +1,5 @@
 import "dotenv/config";
-import { Request, Response, NextFunction } from "express";
+import { Request, Response, NextFunction, request } from "express";
 import userModel, { IUser } from "../models/use.model";
 import ErrorHandler from "../utils/ErrorHandler";
 import { CatchAsyncError } from "../middleware/catchAsyncErrors";
@@ -7,6 +7,7 @@ import jwt, { Secret } from "jsonwebtoken";
 import ejs from "ejs";
 import path from "path"
 import sendMail from "../utils/sendMail";
+import { sendToken } from "../utils/jwt";
 
 
 // register user
@@ -111,3 +112,35 @@ export const activateUser = CatchAsyncError(async (req: Request, res: Response, 
     }
 }
 )
+
+// Login user
+interface ILoginRequest {
+    email: string;
+    password: string;
+}
+
+export const loginUser = CatchAsyncError(async (req: Request, res: Response, next: NextFunction) => {
+    try {
+        const { email, password } = req.body as ILoginRequest;
+
+        if (!email || !password) {
+            return next(new ErrorHandler("Please enter email and password", 400));
+        }
+
+        const user = await userModel.findOne({ email }).select("+password");
+
+        if (!user) {
+            return next(new ErrorHandler("Invalid email or password", 400));
+        }
+
+        const isPasswordMatch = await user.comparedPassword(password);
+
+        if (!isPasswordMatch) {
+            return next(new ErrorHandler("Invalid email or password", 400));
+        }
+
+        sendToken(user, 200, res);
+    } catch (error) {
+        return next(new ErrorHandler(error.message, 400));
+    }
+})
