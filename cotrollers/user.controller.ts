@@ -8,6 +8,7 @@ import ejs from "ejs";
 import path from "path"
 import sendMail from "../utils/sendMail";
 import { sendToken } from "../utils/jwt";
+import { redis } from "../utils/redis";
 
 
 // register user
@@ -149,10 +150,15 @@ export const logoutUser = CatchAsyncError(async (req: Request, res: Response, ne
     try {
         res.cookie("access_token", "", { maxAge: 1 });
         res.cookie("refresh_token", "", { maxAge: 1 });
+
+        // delete cashing as well
+        const userId = req.user?._id || "";
+        redis.del(userId);
+
         res.status(200).json({
             success: true,
-            message: "Logged out successfully"
-        })
+            message: "Logged out successfully",
+        }) 
     } catch (error: any) {
         return next(new ErrorHandler(error.message, 400));
     }
