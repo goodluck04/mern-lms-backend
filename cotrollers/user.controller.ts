@@ -3,11 +3,11 @@ import { Request, Response, NextFunction, request } from "express";
 import userModel, { IUser } from "../models/use.model";
 import ErrorHandler from "../utils/ErrorHandler";
 import { CatchAsyncError } from "../middleware/catchAsyncErrors";
-import jwt, { Secret } from "jsonwebtoken";
+import jwt, { JwtPayload, Secret } from "jsonwebtoken";
 import ejs from "ejs";
 import path from "path"
 import sendMail from "../utils/sendMail";
-import { sendToken } from "../utils/jwt";
+import { accessTokenOptions, refreshTokenOptions, sendToken } from "../utils/jwt";
 import { redis } from "../utils/redis";
 
 
@@ -158,8 +158,55 @@ export const logoutUser = CatchAsyncError(async (req: Request, res: Response, ne
         res.status(200).json({
             success: true,
             message: "Logged out successfully",
-        }) 
+        })
     } catch (error: any) {
         return next(new ErrorHandler(error.message, 400));
     }
-})
+});
+
+
+// update access token
+export const updateAccessToken = CatchAsyncError(async (req: Request, res: Response, next: NextFunction) => {
+    try {
+        const refresh_token = req.cookies.refresh_token as string;
+        // verify token 
+        const decoded = jwt.verify(refresh_token, process.env.REFRESH_TOKEN as string) as JwtPayload;
+
+        // message if refresh token is not valid
+        const message = "Could not refresh token";
+        if (!decoded) {
+            return next(new ErrorHandler(message, 400));
+        }
+
+        // get session from redis and check if valid or not
+        const session = await redis.get(decoded.id as string);
+        if (!session) {
+            return next(new ErrorHandler(message, 400));
+        }
+
+        // if session id valid
+        // save it in user and create new access token
+        const user = JSON.parse(session);
+
+        const accessToken = jwt.sign({ id: user._id }, process.env.ACCESS_TOKEN as string, {
+            expiresIn: "5m",
+        });
+
+        const refreshToken = jwt.sign({ id: user._id }, process.env.REFRESH_TOKEN as string, {
+            expiresIn: "3d",
+        });
+
+        res.cookie("access_token", accessToken, accessTokenOptions);
+        res.cookie("refresh_token", refreshToken, refreshTokenOptions);
+
+        // send the update cookies and token
+        res.status(200).json({
+            status: "success",
+            accessToken,
+        })
+    } catch (error) {
+        return next(new ErrorHandler(error.message, 400));
+    }
+});
+
+// get user info
