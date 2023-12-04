@@ -71,13 +71,12 @@ const commentSchema = new Schema<IComment>({
 
 const courseDataSchema = new Schema<ICourseData>({
     videoUrl: String,
-    videoThumbnail: Object,
     title: String,
     videoSection: String,
     description: String,
     videoLength: Number,
     videoPlayer: String,
-    links: String,
+    links: [linkSchema],
     suggestion: String,
     questions: [commentSchema]
 });
@@ -100,11 +99,9 @@ const courseSchema = new Schema<ICourse>({
     },
     thumbnail: {
         public_id: {
-            required: true,
             type: String,
         },
         url: {
-            required: true,
             type: String,
         }
     },
@@ -132,7 +129,7 @@ const courseSchema = new Schema<ICourse>({
         type: Number,
         default: 0,
     },
-}, { timestamps: true });
+});
 
 const courseModel: Model<ICourse> = mongoose.model("Course", courseSchema);
 export default courseModel;

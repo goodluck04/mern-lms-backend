@@ -33,10 +33,16 @@ export const isAuthenticated = CatchAsyncError(async (req: Request, res: Respons
 });
 
 // validate user role 
+
 export const authorizeRoles = (...roles: string[]) => {
     return (req: Request, res: Response, next: NextFunction) => {
-        if (!roles.includes(req.user?.role || "")) {
-            return next(new ErrorHandler(`Role: ${req.user?.role} is not allowed to access this resource`, 403));
+        const userRole = req.user?.role || "";
+
+        if (!roles.includes(userRole)) {
+            return next(new ErrorHandler(`Role: ${userRole} is not allowed to access this resource`, 403));
         }
-    }
-}
+
+        // If the user has the correct role, proceed to the next middleware
+        next();
+    };
+};
