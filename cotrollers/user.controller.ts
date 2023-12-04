@@ -211,7 +211,7 @@ export const updateAccessToken = CatchAsyncError(async (req: Request, res: Respo
 });
 
 // get user info
-export const getUserInfo = CatchAsyncError(async(req:Request, res:Response, next:NextFunction) => {
+export const getUserInfo = CatchAsyncError(async (req: Request, res: Response, next: NextFunction) => {
     try {
         const userId = req.user?._id;
         getUserById(userId, res);
@@ -219,5 +219,31 @@ export const getUserInfo = CatchAsyncError(async(req:Request, res:Response, next
         return next(new ErrorHandler(error.message, 400))
     }
 })
-  
-// Oauth
+
+interface ISocialAuthBody {
+    email: string;
+    name: string;
+    avatar: string;
+}
+
+// Oauth login
+export const socialAuth = CatchAsyncError(async (req: Request, res: Response, next: NextFunction) => {
+    try {
+        const { email, name, avatar } = req.body as ISocialAuthBody;
+        // check if user exist or not
+        const user = await userModel.findOne({ email });
+
+        if (!user) {
+            // if user not exist in db then creat neUser save in db and send token
+            const newUser = await userModel.create({ email, name, avatar })
+            sendToken(newUser, 200, res);
+        } else {
+            // if user exist in db then only send the token
+            sendToken(user, 200, res);
+        }
+
+
+    } catch (error) {
+        return next(new ErrorHandler(error.message, 400))
+    }
+})
