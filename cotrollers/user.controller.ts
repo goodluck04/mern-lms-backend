@@ -198,7 +198,7 @@ export const updateAccessToken = CatchAsyncError(async (req: Request, res: Respo
         });
 
         // update user as well
-        req.user = user; 
+        req.user = user;
 
         res.cookie("access_token", accessToken, accessTokenOptions);
         res.cookie("refresh_token", refreshToken, refreshTokenOptions);
@@ -288,6 +288,53 @@ export const updateUserInfo = CatchAsyncError(async (req: Request, res: Response
             success: true,
             user,
         })
+    } catch (error) {
+        return next(new ErrorHandler(error.message, 400))
+    }
+});
+
+
+// update password
+interface IUpdatePassword {
+    oldPassword: string;
+    newPassword: string;
+}
+
+export const updatePassword = CatchAsyncError(async (req: Request, res: Response, next: NextFunction) => {
+    try {
+        const { oldPassword, newPassword } = req.body as IUpdatePassword;
+
+        // get body
+        if (!oldPassword || !newPassword) {
+            return next(new ErrorHandler("Please enter old and new password", 400));
+        }
+        // checking if for valid user
+        const user = await userModel.findById(req.user?._id).select("+password");
+
+        // update redis 
+        await redis.set(req.user?._id, JSON.stringify(user))
+        // if password doesn't exist
+        if (user?.password === undefined) {
+            return next(new ErrorHandler("Invalid user", 400));
+        }
+
+        // compare password
+        const isPasswordMatch = await user?.comparedPassword(oldPassword);
+
+        // if old password is not match
+        if (!isPasswordMatch) {
+            return next(new ErrorHandler("Invalid old password", 400));
+        }
+        // save new password in user
+        user.password = newPassword;
+        // now save user password
+        await user.save();
+
+        // send response
+        res.status(201).json({
+            success: true,
+            user,
+        });
     } catch (error) {
         return next(new ErrorHandler(error.message, 400))
     }
