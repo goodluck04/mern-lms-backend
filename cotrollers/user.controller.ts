@@ -197,6 +197,9 @@ export const updateAccessToken = CatchAsyncError(async (req: Request, res: Respo
             expiresIn: "3d",
         });
 
+        // update user as well
+        req.user = user; 
+
         res.cookie("access_token", accessToken, accessTokenOptions);
         res.cookie("refresh_token", refreshToken, refreshTokenOptions);
 
@@ -247,3 +250,45 @@ export const socialAuth = CatchAsyncError(async (req: Request, res: Response, ne
         return next(new ErrorHandler(error.message, 400))
     }
 })
+
+interface IUpdateUserInfo {
+    name?: string;
+    email?: string;
+}
+
+
+// updateuser
+export const updateUserInfo = CatchAsyncError(async (req: Request, res: Response, next: NextFunction) => {
+    try {
+        const { name, email } = req.body;
+        const userId = req.user?._id;
+        // check if is valid or not
+        const user = await userModel.findById(userId);
+
+        // if is valid then update
+        if (email && user) {
+            // update email should be unique in the data base
+            const isEmailExist = await userModel.findOne({ email });
+            if (isEmailExist) {
+                return next(new ErrorHandler("Email already exist", 400));
+            }
+            // if user is valid and email for is unique then change the email
+            user.email = email;
+        }
+        if (name && user) {
+            user.name = name;
+        }
+        // save the changes in db
+        await user?.save();
+
+        // update the cache in the redis db
+        await redis.set(userId, JSON.stringify(user));
+        // send the response 
+        res.status(201).json({
+            success: true,
+            user,
+        })
+    } catch (error) {
+        return next(new ErrorHandler(error.message, 400))
+    }
+});
