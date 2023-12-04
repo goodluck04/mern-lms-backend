@@ -10,6 +10,7 @@ import sendMail from "../utils/sendMail";
 import { accessTokenOptions, refreshTokenOptions, sendToken } from "../utils/jwt";
 import { redis } from "../utils/redis";
 import { getUserById } from "../services/user.service";
+import cloudinary from "cloudinary";
 
 
 // register user
@@ -246,7 +247,7 @@ export const socialAuth = CatchAsyncError(async (req: Request, res: Response, ne
         }
 
 
-    } catch (error) {
+    } catch (error: any) {
         return next(new ErrorHandler(error.message, 400))
     }
 })
@@ -288,7 +289,7 @@ export const updateUserInfo = CatchAsyncError(async (req: Request, res: Response
             success: true,
             user,
         })
-    } catch (error) {
+    } catch (error: any) {
         return next(new ErrorHandler(error.message, 400))
     }
 });
@@ -335,7 +336,66 @@ export const updatePassword = CatchAsyncError(async (req: Request, res: Response
             success: true,
             user,
         });
-    } catch (error) {
+    } catch (error: any) {
         return next(new ErrorHandler(error.message, 400))
     }
 });
+
+interface IUpdateProfilePicture {
+    avatar: string;
+}
+
+// update profile picture
+export const updateProfilePicture = CatchAsyncError(async (req: Request, res: Response, next: NextFunction) => {
+    try {
+
+        const { avatar } = req.body;
+        // get the id of user
+        const userId = req.user?._id;
+        // search if user exist in db or not
+        const user = await userModel.findById(userId);
+
+        if (avatar && user) {
+            // if user have one avatr then call this if
+            if (user?.avatar?.public_id) {
+                // first delete the old image
+                await cloudinary.v2.uploader.destroy(user?.avatar?.public_id);
+                // then upload new avatar images
+                const myCloaud = await cloudinary.v2.uploader.upload(avatar, {
+                    folder: "avatars",
+                    width: 150,
+                });
+                // change the user avatar
+                user.avatar = {
+                    public_id: myCloaud.public_id,
+                    url: myCloaud.secure_url,
+                }
+            } else {
+                // if dosent have avatar ,then only upload avar
+                const myCloaud = await cloudinary.v2.uploader.upload(avatar, {
+                    folder: "avatars",
+                    width: 150,
+                });
+                // change the user avatar
+                user.avatar = {
+                    public_id: myCloaud.public_id,
+                    url: myCloaud.secure_url,
+                }
+            }
+        }
+
+        // now save the url in db
+        await user?.save();
+        // update redis
+        await redis.set(userId, JSON.stringify(user));
+
+        // send response
+        res.status(200).json({
+            success: true,
+            user,
+        })
+
+    } catch (error: any) {
+        return next(new ErrorHandler(error.message, 400))
+    }
+})

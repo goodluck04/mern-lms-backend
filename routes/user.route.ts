@@ -1,5 +1,5 @@
 import express from "express";
-import { activateUser, getUserInfo, loginUser, logoutUser, registrationUser, socialAuth, updateAccessToken, updatePassword, updateUserInfo } from "../cotrollers/user.controller";
+import { activateUser, getUserInfo, loginUser, logoutUser, registrationUser, socialAuth, updateAccessToken, updatePassword, updateProfilePicture, updateUserInfo } from "../cotrollers/user.controller";
 import { authorizeRoles, isAuthenticated } from "../middleware/auth";
 const router = express.Router();
 
@@ -12,6 +12,7 @@ router.get("/me", isAuthenticated, getUserInfo);
 router.post("/socialAuth", socialAuth);
 router.put("/update-user-info", isAuthenticated, updateUserInfo);
 router.put("/update-user-password", isAuthenticated, updatePassword);
+router.put("/update-user-avatar", isAuthenticated, updateProfilePicture);
 
 // router.get("/logout", isAuthenticated, authorizeRoles("admin"), logoutUser);
 
