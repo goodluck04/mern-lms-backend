@@ -4,6 +4,7 @@ import ErrorHandler from "../utils/ErrorHandler";
 import cloudinary from "cloudinary";
 import { createCourse } from "../services/course.service";
 import courseModel from "../models/course.model";
+import { redis } from "../utils/redis";
 
 // upload course
 export const uploadCourse = CatchAsyncError(async (req: Request, res: Response, next: NextFunction) => {
@@ -23,7 +24,7 @@ export const uploadCourse = CatchAsyncError(async (req: Request, res: Response, 
             }
         }
         createCourse(data, res, next);
-    } catch (error) {
+    } catch (error: any) {
         return next(new ErrorHandler(error.message, 500));
     }
 });
@@ -60,8 +61,82 @@ export const editCourse = CatchAsyncError(async (req: Request, res: Response, ne
             success: true,
             course,
         })
-    } catch (error) {
+    } catch (error: any) {
         return next(new ErrorHandler(error.message, 500));
     }
 });
+
+// we cant put everything on redis but 
+// getting single course without purchase will be for than puchased one so we can put htis on redis
+
+// get single course -- without purchasing
+export const getSingleCourse = CatchAsyncError(async (req: Request, res: Response, next: NextFunction) => {
+    try {
+        const courseId = req.params.id;
+        // if check that the course exist in redis db or not
+        const isCacheExist = await redis.get(courseId);
+        // if course exist in redis do not cache it again
+        if (isCacheExist) {
+            const course = JSON.parse(isCacheExist);
+            res.status(200).json({
+                success: true,
+                course,
+            })
+        } else {
+            // cache do not exist in redis db
+
+            // first search mongodb
+            const course = await courseModel.findById(req.params.id).select("-courseData.videoUrl -courseData.suggestion -courseData.questions -courseData.links");
+
+            // now chache it for that course for first time
+            await redis.set(courseId, JSON.stringify(course));
+
+            res.status(200).json({
+                success: true,
+                course,
+            })
+        }
+
+
+
+    } catch (error: any) {
+        next(new ErrorHandler(error.message, 500))
+    }
+});
+
+// get all courses -- without purchasing
+export const getAllCourses = CatchAsyncError(async (req: Request, res: Response, next: NextFunction) => {
+    try {
+
+        // check if all courses exist or not in redis
+        const isCacheExist = await redis.get("allCourses");
+        if (isCacheExist) {
+            // if course exist hten send the course
+            const courses = JSON.parse(isCacheExist);
+            res.status(200).json({
+                success: true,
+                courses,
+            })
+        } else {
+            // if all course dont exist in redis
+            const courses = await courseModel.find().select("-courseData.videoUrl -courseData.suggestion -courseData.questions -courseData.links");
+
+            // then cache in db
+            await redis.set("allCourse", JSON.stringify(courses));
+            // send the all course from mongo for the first time
+            res.status(200).json({
+                success: true,
+                courses,
+            })
+        }
+
+    } catch (error: any) {
+        next(new ErrorHandler(error.message, 500))
+    }
+});
+
+// 
+
+
+
 
