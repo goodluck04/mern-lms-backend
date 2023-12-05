@@ -250,6 +250,7 @@ export const addAnswer = CatchAsyncError(async (req: Request, res: Response, nex
         // if the user create question we get notification
         if (req.user?._id === question.user?._id) {
             // for same user create notification
+            // TO DO TASK
             // create notification ???
         } else {
             // only send mail if sender reply and receiver is defferent
@@ -277,6 +278,68 @@ export const addAnswer = CatchAsyncError(async (req: Request, res: Response, nex
         })
     } catch (error: any) {
         next(new ErrorHandler(error.message, 500));
+    }
+})
+
+// add review in course
+interface IAddReview {
+    review: string;
+    rating: number;
+    userId: string;
+}
+export const addReview = CatchAsyncError(async (req: Request, res: Response, next: NextFunction) => {
+    try {
+        // only purchaed user can review the course
+        // get the couse list of user
+        const userCourseList = req.user?.courses;
+        // get the course id from params
+        const courseId = req.params.id;
+        // some method return boolean
+        const courseExists = userCourseList?.some((course: any) => course._id.toString() === courseId.toString());
+        // check if that perticular course exist in user course list or not based on course id
+        if (!courseExists) {
+            return next(new ErrorHandler("Your arenot eligible to access this course", 404));
+        }
+        // find the course in db
+        const course = await courseModel.findById(courseId);
+
+        // get review data from body
+        const { review, rating } = req.body as IAddReview;
+        // create review data
+        const reviewData: any = {
+            user: req.user,
+            rating,
+            comment: review,
+        }
+        // now save the review in mongodb
+        course?.reviews.push(reviewData);
+
+        // creating rev average for all reviews obviously
+        let avg = 0;
+        course?.reviews.forEach((rev: any) => {
+            avg += rev.rating;
+        });
+        // only if there is course
+        if (course) {
+            course.ratings = avg / course.reviews.length;
+        };
+        // now save the ratings
+        await course?.save();
+        // create notification
+        const notification = {
+            title: "New Review Received",
+            message: `${req.user?.name} has given a review in ${course?.name}`,
+        }
+
+        // TO DO TASK 
+        // create notification
+
+        res.status(200).json({
+            success: true,
+            course,
+        });
+    } catch (error: any) {
+        return next(new ErrorHandler(error.message, 500))
     }
 })
 
