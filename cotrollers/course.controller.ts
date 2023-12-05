@@ -135,7 +135,32 @@ export const getAllCourses = CatchAsyncError(async (req: Request, res: Response,
     }
 });
 
-// 
+// get course  content -- only for valid use
+export const getCourseByUser = CatchAsyncError(async (req: Request, res: Response, next: NextFunction) => {
+    try {
+        // check if user bought this course or not
+        const userCourseList = req.user?.courses;
+        // get d of the course
+        const courseId = req.params.id
+        // search the course in userCourseList
+        const courseExists = userCourseList?.find((course: any) => course._id.toString() === courseId);
+        // if the user have not purchased that courses
+        if (!courseExists) {
+            return next(new ErrorHandler("You are not eligible to access this course", 404))
+        };
+        // if user have purchased that course then show him the course
+        const course = await courseModel.findById(courseId);
+        // now return the content of that course that user
+        const content = course?.courseData;
+        // now return the content for in response
+        res.status(200).json({
+            success: true,
+            content,
+        })
+    } catch (error: any) {
+        return next(new ErrorHandler(error.message, 500))
+    }
+})
 
 
 
