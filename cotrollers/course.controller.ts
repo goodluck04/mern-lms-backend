@@ -341,6 +341,52 @@ export const addReview = CatchAsyncError(async (req: Request, res: Response, nex
     } catch (error: any) {
         return next(new ErrorHandler(error.message, 500))
     }
+});
+
+// add reply to a review only by the admin
+interface IAddReviewData {
+    comment: string;
+    courseId: string;
+    reviewId: string;
+};
+
+export const addReplyToReview = CatchAsyncError(async (req: Request, res: Response, next: NextFunction) => {
+    try {
+        // get the body
+        const { comment, courseId, reviewId } = req.body as IAddReviewData;
+        // search for course in db
+        const course = await courseModel.findById(courseId);
+        // if not found
+        if (!course) {
+            return next(new ErrorHandler("Course not found", 404));
+        };
+        // serach for review in that course
+        const review = course?.reviews?.find((rev: any) => rev._id.toString() === reviewId);
+        // if review id not found
+        if (!review) {
+            return next(new ErrorHandler("Review not found", 404));
+        }
+        // if course and review found then create review reply
+        const replyData: any = {
+            user: req.user,
+            comment,
+        };
+        // if there is no commentReplies array then make one
+        if(!review.commentReplies){
+            review.commentReplies = [];
+        }
+        // push the reply in review 
+        review.commentReplies?.push(replyData);
+        // save the reply data in db
+        await course?.save();
+        // send response
+        res.status(200).json({
+            success: true,
+            course,
+        });
+    } catch (error: any) {
+        return next(new ErrorHandler(error.message, 500));
+    }
 })
 
 
