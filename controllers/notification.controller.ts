@@ -2,6 +2,7 @@ import { CatchAsyncError } from "../middleware/catchAsyncErrors";
 import NotificationModel from "../models/notification.model";
 import ErrorHandler from "../utils/ErrorHandler";
 import { Request, Response, NextFunction } from "express";
+import cron from 'node-cron';
 
 // get all notification --only for admins
 export const getNotification = CatchAsyncError(async (req: Request, res: Response, next: NextFunction) => {
@@ -44,3 +45,12 @@ export const updateNotification = CatchAsyncError(async (req: Request, res: Resp
         return next(new ErrorHandler(error.message, 500));
     }
 });
+
+// delete notification --only admin
+// node-cron will automically delete notification after 30 days and createAt more than 30days
+cron.schedule("0 0 0 * * *", async () => {
+    const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000)
+    await NotificationModel.deleteMany({ status: "read", createdAt: { $lt: thirtyDaysAgo } });
+    console.log("Delete read notifications");
+})
+
