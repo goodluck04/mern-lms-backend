@@ -5,7 +5,7 @@ import { Request, Response, NextFunction } from "express";
 import cron from 'node-cron';
 
 // get all notification --only for admins
-export const getNotification = CatchAsyncError(async (req: Request, res: Response, next: NextFunction) => {
+export const getAllNotification = CatchAsyncError(async (req: Request, res: Response, next: NextFunction) => {
     try {
         // sorting by createdAt in reverse order
         const notifications = await NotificationModel.find().sort({ createdAt: -1 });
@@ -52,5 +52,6 @@ cron.schedule("0 0 0 * * *", async () => {
     const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000)
     await NotificationModel.deleteMany({ status: "read", createdAt: { $lt: thirtyDaysAgo } });
     console.log("Delete read notifications");
-})
+});
+
 
