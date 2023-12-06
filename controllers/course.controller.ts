@@ -9,6 +9,7 @@ import mongoose from "mongoose";
 import ejs from "ejs";
 import path from "path";
 import sendMail from "../utils/sendMail";
+import NotificationModel from "../models/notification.model";
 
 // upload course
 export const uploadCourse = CatchAsyncError(async (req: Request, res: Response, next: NextFunction) => {
@@ -196,6 +197,12 @@ export const addQuestion = CatchAsyncError(async (req: Request, res: Response, n
         };
         // add new Question object to our content
         courseContent.questions.push(newQuestion);
+        // send notification to admin that question is added
+        await NotificationModel.create({
+            user: req.user?._id,
+            title: "New Question Received",
+            message: `You have a new question in ${courseContent?.title}`,
+        });
         // save the updated courses
         await course?.save();
         // send the response
@@ -249,9 +256,11 @@ export const addAnswer = CatchAsyncError(async (req: Request, res: Response, nex
         await course?.save();
         // if the user create question we get notification
         if (req.user?._id === question.user?._id) {
-            // for same user create notification
-            // TO DO TASK
-            // create notification ???
+            await NotificationModel.create({
+                user: req.user?._id,
+                title: "New Question Reply Received",
+                message: `You have a new question reply in ${courseContent.title}`
+            })
         } else {
             // only send mail if sender reply and receiver is defferent
             // if sender and receiver address is same then it will not send 
@@ -372,7 +381,7 @@ export const addReplyToReview = CatchAsyncError(async (req: Request, res: Respon
             comment,
         };
         // if there is no commentReplies array then make one
-        if(!review.commentReplies){
+        if (!review.commentReplies) {
             review.commentReplies = [];
         }
         // push the reply in review 
