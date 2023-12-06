@@ -12,7 +12,7 @@ import NotificationModel from "../models/notification.model";
 import { newOrder } from "../services/order.service";
 
 // create order
-// TO DO TASK layout ejs not good
+
 export const createOrder = CatchAsyncError(async (req: Request, res: Response, next: NextFunction) => {
     try {
         // get orderinfo from body
