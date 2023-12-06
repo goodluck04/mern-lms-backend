@@ -3,7 +3,7 @@ import { CatchAsyncError } from "../middleware/catchAsyncErrors";
 import ErrorHandler from "../utils/ErrorHandler";
 import cloudinary from "cloudinary";
 import { createCourse } from "../services/course.service";
-import courseModel from "../models/course.model";
+import CourseModel from "../models/course.model";
 import { redis } from "../utils/redis";
 import mongoose from "mongoose";
 import ejs from "ejs";
@@ -57,7 +57,7 @@ export const editCourse = CatchAsyncError(async (req: Request, res: Response, ne
         }
 
         const courseId = req.params.id;
-        const course = await courseModel.findByIdAndUpdate(courseId, {
+        const course = await CourseModel.findByIdAndUpdate(courseId, {
             $set: data
         }, { new: true });
 
@@ -90,7 +90,7 @@ export const getSingleCourse = CatchAsyncError(async (req: Request, res: Respons
             // cache do not exist in redis db
 
             // first search mongodb
-            const course = await courseModel.findById(req.params.id).select("-courseData.videoUrl -courseData.suggestion -courseData.questions -courseData.links");
+            const course = await CourseModel.findById(req.params.id).select("-courseData.videoUrl -courseData.suggestion -courseData.questions -courseData.links");
 
             // now chache it for that course for first time
             await redis.set(courseId, JSON.stringify(course));
@@ -123,7 +123,7 @@ export const getAllCourses = CatchAsyncError(async (req: Request, res: Response,
             })
         } else {
             // if all course dont exist in redis
-            const courses = await courseModel.find().select("-courseData.videoUrl -courseData.suggestion -courseData.questions -courseData.links");
+            const courses = await CourseModel.find().select("-courseData.videoUrl -courseData.suggestion -courseData.questions -courseData.links");
 
             // then cache in db
             await redis.set("allCourse", JSON.stringify(courses));
@@ -153,7 +153,7 @@ export const getCourseByUser = CatchAsyncError(async (req: Request, res: Respons
             return next(new ErrorHandler("You are not eligible to access this course", 404))
         };
         // if user have purchased that course then show him the course
-        const course = await courseModel.findById(courseId);
+        const course = await CourseModel.findById(courseId);
         // now return the content of that course that user
         const content = course?.courseData;
         // now return the content for in response
@@ -178,7 +178,7 @@ export const addQuestion = CatchAsyncError(async (req: Request, res: Response, n
         // get body
         const { question, courseId, contentId }: IAddQuestionData = req.body;
         // find the course in db
-        const course = await courseModel.findById(courseId);
+        const course = await CourseModel.findById(courseId);
         // search for course content is valid or or not 
         if (!mongoose.Types.ObjectId.isValid(contentId)) {
             return next(new ErrorHandler("Invalid content id", 400));
@@ -222,7 +222,7 @@ export const addAnswer = CatchAsyncError(async (req: Request, res: Response, nex
         // get the body
         const { answer, courseId, contentId, questionId }: IAddAnswerData = req.body;
         // search for course
-        const course = await courseModel.findById(courseId);
+        const course = await CourseModel.findById(courseId);
         // check whether content id is valid
         if (!mongoose.Types.ObjectId.isValid(contentId)) {
             return next(new ErrorHandler("Invalid content id", 400));
@@ -301,7 +301,7 @@ export const addReview = CatchAsyncError(async (req: Request, res: Response, nex
             return next(new ErrorHandler("Your arenot eligible to access this course", 404));
         }
         // find the course in db
-        const course = await courseModel.findById(courseId);
+        const course = await CourseModel.findById(courseId);
 
         // get review data from body
         const { review, rating } = req.body as IAddReview;
@@ -355,7 +355,7 @@ export const addReplyToReview = CatchAsyncError(async (req: Request, res: Respon
         // get the body
         const { comment, courseId, reviewId } = req.body as IAddReviewData;
         // search for course in db
-        const course = await courseModel.findById(courseId);
+        const course = await CourseModel.findById(courseId);
         // if not found
         if (!course) {
             return next(new ErrorHandler("Course not found", 404));

@@ -1,6 +1,6 @@
 import "dotenv/config";
 import { Request, Response, NextFunction, request } from "express";
-import userModel, { IUser } from "../models/user.model";
+import UserModel, { IUser } from "../models/user.model";
 import ErrorHandler from "../utils/ErrorHandler";
 import { CatchAsyncError } from "../middleware/catchAsyncErrors";
 import jwt, { JwtPayload, Secret } from "jsonwebtoken";
@@ -25,7 +25,7 @@ export const registrationUser = CatchAsyncError(async (req: Request, res: Respon
     try {
         const { name, email, password } = req.body;
 
-        const isEmailExist = await userModel.findOne({ email });
+        const isEmailExist = await UserModel.findOne({ email });
         if (isEmailExist) {
             return next(new ErrorHandler("Email already exists", 400));
         }
@@ -95,13 +95,13 @@ export const activateUser = CatchAsyncError(async (req: Request, res: Response, 
         }
 
         const { name, email, password } = newUser.user;
-        const existUser = await userModel.findOne({ email });
+        const existUser = await UserModel.findOne({ email });
 
         if (existUser) {
             return next(new ErrorHandler("Email already exists", 400))
         }
 
-        const user = await userModel.create({
+        const user = await UserModel.create({
             name,
             email,
             password,
@@ -130,7 +130,7 @@ export const loginUser = CatchAsyncError(async (req: Request, res: Response, nex
             return next(new ErrorHandler("Please enter email and password", 400));
         }
 
-        const user = await userModel.findOne({ email }).select("+password");
+        const user = await UserModel.findOne({ email }).select("+password");
 
         if (!user) {
             return next(new ErrorHandler("Invalid email or password", 400));
@@ -235,11 +235,11 @@ export const socialAuth = CatchAsyncError(async (req: Request, res: Response, ne
     try {
         const { email, name, avatar } = req.body as ISocialAuthBody;
         // check if user exist or not
-        const user = await userModel.findOne({ email });
+        const user = await UserModel.findOne({ email });
 
         if (!user) {
             // if user not exist in db then creat neUser save in db and send token
-            const newUser = await userModel.create({ email, name, avatar })
+            const newUser = await UserModel.create({ email, name, avatar })
             sendToken(newUser, 200, res);
         } else {
             // if user exist in db then only send the token
@@ -264,12 +264,12 @@ export const updateUserInfo = CatchAsyncError(async (req: Request, res: Response
         const { name, email } = req.body;
         const userId = req.user?._id;
         // check if is valid or not
-        const user = await userModel.findById(userId);
+        const user = await UserModel.findById(userId);
 
         // if is valid then update
         if (email && user) {
             // update email should be unique in the data base
-            const isEmailExist = await userModel.findOne({ email });
+            const isEmailExist = await UserModel.findOne({ email });
             if (isEmailExist) {
                 return next(new ErrorHandler("Email already exist", 400));
             }
@@ -310,7 +310,7 @@ export const updatePassword = CatchAsyncError(async (req: Request, res: Response
             return next(new ErrorHandler("Please enter old and new password", 400));
         }
         // checking if for valid user
-        const user = await userModel.findById(req.user?._id).select("+password");
+        const user = await UserModel.findById(req.user?._id).select("+password");
 
         // update redis 
         await redis.set(req.user?._id, JSON.stringify(user))
@@ -353,7 +353,7 @@ export const updateProfilePicture = CatchAsyncError(async (req: Request, res: Re
         // get the id of user
         const userId = req.user?._id;
         // search if user exist in db or not
-        const user = await userModel.findById(userId);
+        const user = await UserModel.findById(userId);
 
         if (avatar && user) {
             // if user have one avatr then call this if

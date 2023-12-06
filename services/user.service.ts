@@ -1,12 +1,12 @@
 import { Response } from "express";
-// import userModel from "../models/use.model"
+// import UserModel from "../models/use.model"
 import { redis } from "../utils/redis";
 
 
 // get user by id
 export const getUserById = async (id: string, res: Response) => {
     // find user from mongodb
-    // const user = await userModel.findById(id);
+    // const user = await UserModel.findById(id);
     // but we are using redis for caching so we can search user theri
     const userJson = await redis.get(id);
 
