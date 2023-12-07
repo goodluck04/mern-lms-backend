@@ -93,8 +93,10 @@ export const getSingleCourse = CatchAsyncError(async (req: Request, res: Respons
             // first search mongodb
             const course = await CourseModel.findById(req.params.id).select("-courseData.videoUrl -courseData.suggestion -courseData.questions -courseData.links");
 
-            // now chache it for that course for first time
-            await redis.set(courseId, JSON.stringify(course));
+
+
+            // now cache it for that course for first time it will automatically expire in 7 days=604800
+            await redis.set(courseId, JSON.stringify(course), "EX", 604800);
 
             res.status(200).json({
                 success: true,

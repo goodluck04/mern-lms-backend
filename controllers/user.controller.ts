@@ -21,6 +21,7 @@ interface IRegistrationBody {
     avatar?: string;
 }
 
+// register user
 export const registrationUser = CatchAsyncError(async (req: Request, res: Response, next: NextFunction) => {
     try {
         const { name, email, password } = req.body;
@@ -67,6 +68,7 @@ interface IActivationToken {
     activationCode: string;
 };
 
+// create activation code
 export const createActivation = (user: any): IActivationToken => {
     const activationCode = Math.floor(1000 + Math.random() * 9000).toString();
     const token = jwt.sign({ user, activationCode }, process.env.ACTIVATION_SECRET as Secret, {
@@ -82,6 +84,7 @@ interface IActivationRequest {
     activation_code: string;
 }
 
+// activate user using otp
 export const activateUser = CatchAsyncError(async (req: Request, res: Response, next: NextFunction) => {
     try {
         const { activation_token, activation_code } = req.body as IActivationRequest;
@@ -122,6 +125,7 @@ interface ILoginRequest {
     password: string;
 }
 
+// login user
 export const loginUser = CatchAsyncError(async (req: Request, res: Response, next: NextFunction) => {
     try {
         const { email, password } = req.body as ILoginRequest;
@@ -148,6 +152,7 @@ export const loginUser = CatchAsyncError(async (req: Request, res: Response, nex
     }
 })
 
+// logout user 
 export const logoutUser = CatchAsyncError(async (req: Request, res: Response, next: NextFunction) => {
     try {
         res.cookie("access_token", "", { maxAge: 1 });
@@ -183,7 +188,7 @@ export const updateAccessToken = CatchAsyncError(async (req: Request, res: Respo
         // get session from redis and check if valid or not
         const session = await redis.get(decoded.id as string);
         if (!session) {
-            return next(new ErrorHandler(message, 400));
+            return next(new ErrorHandler("Please login for access this resources!", 400));
         }
 
         // if session id valid
@@ -204,6 +209,9 @@ export const updateAccessToken = CatchAsyncError(async (req: Request, res: Respo
         res.cookie("access_token", accessToken, accessTokenOptions);
         res.cookie("refresh_token", refreshToken, refreshTokenOptions);
 
+        // update redis -user will be expire after seven days
+        // 604800 second = 7days
+        await redis.set(user._id, JSON.stringify(user), "EX", 604800)
         // send the update cookies and token
         res.status(200).json({
             status: "success",
@@ -258,7 +266,7 @@ interface IUpdateUserInfo {
 }
 
 
-// updateuser
+// update user
 export const updateUserInfo = CatchAsyncError(async (req: Request, res: Response, next: NextFunction) => {
     try {
         const { name, email } = req.body;
@@ -422,7 +430,7 @@ export const updateUserRole = CatchAsyncError(async (req: Request, res: Response
 // delete user --only for admin
 export const deleteUser = CatchAsyncError(async (req: Request, res: Response, next: NextFunction) => {
     try {
-        const { id } = req.params;        
+        const { id } = req.params;
         const user = await UserModel.findById(id);
         if (!user) {
             return next(new ErrorHandler("User not found", 404));
