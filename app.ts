@@ -20,8 +20,11 @@ app.use(cookieParser());
 // cors
 app.use(
     cors({
-        origin: process.env.ORIGIN,
+        origin: ["http://localhost:3000"],
+        credentials: true,
+
     }))
+
 
 // routes
 app.use("/api/v1", userRouter, courseRouter, orderRouter, notificationRouter, analyticsRouter, layoutRouter);
