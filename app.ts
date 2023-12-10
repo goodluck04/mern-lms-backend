@@ -18,13 +18,12 @@ app.use(express.json({ limit: "50mb" }));
 // cookie parser
 app.use(cookieParser());
 
-const allowedOrigins:string = (process.env.URL_API)
 
 
 // cors
 app.use(
     cors({ 
-        origin: allowedOrigins,
+        origin: process.env.URL_API,
         credentials: true,
 
     }))
