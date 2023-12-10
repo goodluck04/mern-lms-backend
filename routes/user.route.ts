@@ -5,11 +5,11 @@ const router = express.Router();
 
 router.post("/registration", registrationUser);
 router.post("/activate-user", activateUser);
-router.post("/login", updateAccessToken, loginUser);
+router.post("/login", loginUser);
 router.get("/logout", isAuthenticated, logoutUser);
 router.get("/refresh", updateAccessToken, updateAccessToken);
-router.get("/me", isAuthenticated, getUserInfo);
-router.post("/socialAuth", updateAccessToken, socialAuth);
+router.get("/me", isAuthenticated, isAuthenticated,getUserInfo);
+router.post("/socialAuth", socialAuth);
 router.put("/update-user-info", isAuthenticated, updateUserInfo);
 router.put("/update-user-password", isAuthenticated, updatePassword);
 router.put("/update-user-avatar", isAuthenticated, updateProfilePicture);
