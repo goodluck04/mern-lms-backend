@@ -370,9 +370,10 @@ export const updateProfilePicture = CatchAsyncError(async (req: Request, res: Re
                 await cloudinary.v2.uploader.destroy(user?.avatar?.public_id);
                 // then upload new avatar images
                 const myCloaud = await cloudinary.v2.uploader.upload(avatar, {
+                    // timeout:60000,
                     folder: "avatars",
                     width: 150,
-                });
+                },);
                 // change the user avatar
                 user.avatar = {
                     public_id: myCloaud.public_id,
@@ -381,6 +382,7 @@ export const updateProfilePicture = CatchAsyncError(async (req: Request, res: Re
             } else {
                 // if dosent have avatar ,then only upload avar
                 const myCloaud = await cloudinary.v2.uploader.upload(avatar, {
+                    // timeout:60000,
                     folder: "avatars",
                     width: 150,
                 });
