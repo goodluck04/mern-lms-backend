@@ -213,10 +213,11 @@ export const updateAccessToken = CatchAsyncError(async (req: Request, res: Respo
         // 604800 second = 7days
         await redis.set(user._id, JSON.stringify(user), "EX", 604800)
         // send the update cookies and token
-        res.status(200).json({
-            status: "success",
-            accessToken,
-        })
+        // res.status(200).json({
+        //     status: "success",
+        //     accessToken,
+        // })
+        next();
     } catch (error) {
         return next(new ErrorHandler(error.message, 400));
     }
