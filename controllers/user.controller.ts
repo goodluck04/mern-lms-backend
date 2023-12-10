@@ -270,21 +270,12 @@ interface IUpdateUserInfo {
 // update user
 export const updateUserInfo = CatchAsyncError(async (req: Request, res: Response, next: NextFunction) => {
     try {
-        const { name, email } = req.body;
+        const { name } = req.body;
         const userId = req.user?._id;
         // check if is valid or not
         const user = await UserModel.findById(userId);
 
         // if is valid then update
-        if (email && user) {
-            // update email should be unique in the data base
-            const isEmailExist = await UserModel.findOne({ email });
-            if (isEmailExist) {
-                return next(new ErrorHandler("Email already exist", 400));
-            }
-            // if user is valid and email for is unique then change the email
-            user.email = email;
-        }
         if (name && user) {
             user.name = name;
         }
