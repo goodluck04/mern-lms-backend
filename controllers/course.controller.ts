@@ -10,12 +10,16 @@ import ejs from "ejs";
 import path from "path";
 import sendMail from "../utils/sendMail";
 import NotificationModel from "../models/notification.model";
+import axios from "axios";
 
 // upload course
 export const uploadCourse = CatchAsyncError(async (req: Request, res: Response, next: NextFunction) => {
     try {
         const data = req.body;
-
+        
+        
+          
+ 
         const thumbnail = data.thumbnail;
         // if there is thumbnail
         if (thumbnail) {
@@ -412,7 +416,7 @@ export const getAllCourseSorted = CatchAsyncError(async (req: Request, res: Resp
 // delete user --only for admin
 export const deleteCourse = CatchAsyncError(async (req: Request, res: Response, next: NextFunction) => {
     try {
-        const { id } = req.params;        
+        const { id } = req.params;
         const course = await CourseModel.findById(id);
         if (!course) {
             return next(new ErrorHandler("Course not found", 404));
@@ -431,3 +435,27 @@ export const deleteCourse = CatchAsyncError(async (req: Request, res: Response, 
     }
 })
 
+
+// generate video url 
+
+export const generateVideoUrl = CatchAsyncError(async (req: Request, res: Response, next: NextFunction) => {
+    try {
+        const { videoId } = req.body;
+        
+        const response = await axios.post(
+            `https://dev.vdocipher.com/api/videos/${videoId}/otp`,
+            { ttl: 300 },
+            {
+                headers: {
+                    Accept: "application/json",
+                    "Content-Type": "application/json",
+                    Authorization: `Apisecret ${process.env.VDOCIPHER_API_SECRET}`
+                },
+            }
+        );
+
+        res.json(response.data);
+    } catch (error: any) {
+        return next(new ErrorHandler(error.message, 400))
+    }
+})
